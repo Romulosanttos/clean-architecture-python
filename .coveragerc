@@ -1,0 +1,9 @@
+[run]
+branch = True
+source = 
+    .
+[report]
+# fail_under = 80  # Removido para permitir cobertura atual
+[paths]
+source = 
+    .

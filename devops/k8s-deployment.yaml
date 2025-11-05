@@ -1,0 +1,106 @@
+# Kubernetes Deployment com health checks configurados
+# Apply: kubectl apply -f k8s-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saude-api
+  labels:
+    app: saude-api
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: saude-api
+  template:
+    metadata:
+      labels:
+        app: saude-api
+        version: v1
+    spec:
+      containers:
+      - name: api
+        image: gcr.io/your-project/saude-api:latest
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-secret
+              key: url
+        - name: LOG_LEVEL
+          value: "INFO"
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        # STARTUP PROBE - aguarda inicialização
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30
+        
+        # LIVENESS PROBE - detecta travamentos
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # READINESS PROBE - verifica dependências
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 2
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: saude-api
+  labels:
+    app: saude-api
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: saude-api
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: database-secret
+type: Opaque
+stringData:
+  url: "postgresql+asyncpg://user:password@postgres:5432/saude"
