@@ -7,21 +7,19 @@ from typing import Optional, List
 from decimal import Decimal
 from pydantic import BaseModel, Field
 
-# Importar modelos base (SQLModel) para usar como base dos DTOs
-from src.domain.guia import Guia
-from src.domain.paciente import Beneficiario
-from src.domain.profissional import ProfissionalSolicitante
-from src.domain.procedimento import Procedimento
-from src.domain.material import Material
-from src.domain.autorizacao import Autorizacao
-
 
 # ========================================
-# DTOs simples - herdam validações dos modelos base
+# DTOs simples - BaseModel puro para evitar conflitos SQLModel
 # ========================================
 
-class BeneficiarioDTO(Beneficiario):
+class BeneficiarioDTO(BaseModel):
     """DTO do beneficiário - remove campos de controle (id, timestamps)."""
+    # Campos principais do beneficiário
+    identificador: str = Field(min_length=11, max_length=11, description="CPF do beneficiário")
+    sexo: str = Field(min_length=1, max_length=1, description="M ou F")
+    data_nascimento: datetime = Field(description="Data de nascimento")
+    
+    # Campos opcionais de controle (removidos para criação)
     id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -37,8 +35,17 @@ class BeneficiarioDTO(Beneficiario):
     }
 
 
-class ProfissionalSolicitanteDTO(ProfissionalSolicitante):
+class ProfissionalSolicitanteDTO(BaseModel):
     """DTO do profissional - remove campos de controle (id, timestamps)."""
+    # Campos principais do profissional
+    nome: str = Field(min_length=1, max_length=200, description="Nome do profissional")
+    conselho: str = Field(min_length=1, max_length=10, description="CRM, CRO, etc")
+    numero_conselho: str = Field(min_length=1, max_length=20, description="Número do conselho")
+    uf: str = Field(min_length=2, max_length=2, description="UF do conselho")
+    conselho_especialidade: Optional[str] = Field(None, max_length=50, description="Conselho da especialidade")
+    numero_conselho_especialidade: Optional[str] = Field(None, max_length=20, description="RQE, etc")
+    
+    # Campos opcionais de controle
     id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -57,8 +64,16 @@ class ProfissionalSolicitanteDTO(ProfissionalSolicitante):
     }
 
 
-class AutorizacaoDTO(Autorizacao):
+class AutorizacaoDTO(BaseModel):
     """DTO da autorização - remove campos de controle e FKs."""
+    # Campos principais da autorização
+    numero_autorizacao: str = Field(min_length=1, max_length=50, description="Número da autorização")
+    data_validade: datetime = Field(description="Data de validade da autorização")
+    tipo_autorizacao: str = Field(min_length=1, max_length=50, description="Tipo: procedimento, material, etc")
+    status: str = Field(default="pendente", min_length=1, max_length=20, description="Status da autorização")
+    observacoes: Optional[str] = Field(None, max_length=1000, description="Observações")
+    
+    # Campos opcionais de controle
     id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -79,8 +94,17 @@ class AutorizacaoDTO(Autorizacao):
     }
 
 
-class MaterialDTO(Material):
+class MaterialDTO(BaseModel):
     """DTO do material - remove campos de controle e FKs."""
+    # Campos principais do material
+    codigo_material: str = Field(min_length=1, max_length=20, description="Código do material")
+    descricao: str = Field(min_length=1, max_length=500, description="Descrição do material")
+    tipo_tabela: str = Field(min_length=1, max_length=20, description="SIMPRO, BRASINDICE, etc")
+    quantidade_solicitada: int = Field(ge=1, description="Quantidade solicitada")
+    valor_unitario: Decimal = Field(decimal_places=2, max_digits=10, description="Valor unitário")
+    status: str = Field(default="solicitado", min_length=1, max_length=20, description="Status do material")
+    
+    # Campos opcionais de controle
     id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -100,8 +124,18 @@ class MaterialDTO(Material):
     }
 
 
-class ProcedimentoDTO(Procedimento):
+class ProcedimentoDTO(BaseModel):
     """DTO do procedimento - remove campos de controle e FKs, adiciona relacionamentos."""
+    # Campos principais do procedimento
+    codigo: str = Field(min_length=1, max_length=20, description="Código do procedimento")
+    tipo_tabela: str = Field(min_length=1, max_length=20, description="TUSS, SIGTAP, SIMPRO, etc")
+    descricao: str = Field(min_length=1, max_length=500, description="Descrição do procedimento")
+    categoria: str = Field(min_length=1, max_length=100, description="consulta, cirurgia, exame, etc")
+    quantidade: int = Field(default=1, ge=1, description="Quantidade de vezes")
+    valor_unitario: Decimal = Field(decimal_places=2, max_digits=10, description="Valor unitário")
+    data_realizacao: Optional[datetime] = Field(None, description="Data de realização")
+    
+    # Campos opcionais de controle
     id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -142,8 +176,17 @@ class ProcedimentoDTO(Procedimento):
     }
 
 
-class GuiaDTO(Guia):
+class GuiaDTO(BaseModel):
     """DTO da guia - remove campos de controle e FKs."""
+    # Campos principais da guia
+    numero_guia: str = Field(min_length=1, max_length=50, description="Número da guia")
+    data_solicitacao: datetime = Field(description="Data de solicitação")
+    indicacao_clinica: str = Field(min_length=1, max_length=1000, description="Indicação clínica")
+    tipo_atendimento: str = Field(min_length=1, max_length=50, description="eletivo, urgencia, etc")
+    status: str = Field(default="solicitada", min_length=1, max_length=20, description="Status da guia")
+    valor_total: Decimal = Field(decimal_places=2, max_digits=12, description="Valor total da guia")
+    
+    # Campos opcionais de controle
     id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
